@@ -25,6 +25,38 @@ This repository contains:
 2. A module system for configuring the local Nix-on-Droid installation directly
    on the device.
 
+### This fork
+
+This branch targets nixpkgs and Home Manager 26.05. The bootstrap has its own
+locked nixpkgs input, also on 26.05. Consumer flakes must update their own inputs;
+overriding this fork's inputs with 24.05 will still select the older packages.
+
+Keep existing `system.stateVersion` and `home.stateVersion` values when upgrading.
+They control compatibility defaults, not the package release.
+
+When evaluating an aarch64 configuration on an x86_64 builder, pass
+`bootstrapSystem = "x86_64-linux"` to `nixOnDroidConfiguration`. This builds the
+static proot for aarch64 on the builder rather than requiring an aarch64 build
+of its toolchain. The selected builder or binary cache must supply that output.
+
+Before deploying an upgrade, build both bootstrap archives and the activation
+checks. The activation checks include Home Manager and retain the older state
+versions to exercise upgrades:
+
+```sh
+nix build --no-link .#bootstrapZip-aarch64 .#bootstrapZip-x86_64
+nix build --no-link .#checks.x86_64-linux.activation-aarch64 \
+  .#checks.x86_64-linux.activation-x86_64 .#checks.x86_64-linux.profile-update
+```
+
+These checks do not prove Android runtime compatibility. Test login, activation,
+a second switch, and rollback on a disposable Android installation before
+upgrading a primary device. Keep a backup outside the app's private storage;
+clearing app data deletes the installation and its generations.
+Building the aarch64 activation check from x86_64 requires an aarch64 builder
+or binfmt emulation for the target-side build steps, even though proot itself
+is cross-compiled.
+
 It is only tested with aarch64 (64-bit ARM devices).
 It also used to compile for i686 devices, but the developers don't own any
 and nobody has reported whether it actually worked or not,
@@ -80,7 +112,7 @@ To enable `home-manager` you simply need to follow the instructions already prov
 
 1.  Add `home-manager` channel:
     ```sh
-    nix-channel --add https://github.com/nix-community/home-manager/archive/release-24.05.tar.gz home-manager
+    nix-channel --add https://github.com/nix-community/home-manager/archive/release-26.05.tar.gz home-manager
     nix-channel --update
     ```
 2.  Configure `home-manager`:
@@ -150,15 +182,11 @@ or by setting the environment variable `NIX_ON_DROID_CHANNEL_URL`.
 Other environment variables are `NIXPKGS_CHANNEL_URL` an
 `NIX_ON_DROID_FLAKE_URL`.
 
-**Note**: The `proot` binary is not built on the android device
-(NDK is required for building it, and it's not available on mobile platforms).
-The way we work around it is to push proot derivation to cachix.
-The current workaround is to hardcode the path to the wanted `proot` nix store
-path in `modules/environment/login/default.nix`. During evaluation time on
-the android device this store path will be downloaded from the binary cache
-(<https://nix-on-droid.cachix.org/>). This in return means the `proot`
-derivation has to be present there or in any other binary cache configured
-in the `nix.conf` on the device.
+This fork builds `proot` statically against musl using the bootstrap nixpkgs
+toolchain. It does not need the Android NDK or a hardcoded store path.
+Existing installations need a remote builder or binary cache that supplies
+the selected proot build; the bootstrap archive includes the binary for new
+installations.
 
 If you want to build that proot derivation (possibly to put it in your own cache):
 
@@ -188,10 +216,10 @@ A minimal example could look like the following:
   description = "Minimal example of Nix-on-Droid system config.";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
 
     nix-on-droid = {
-      url = "github:nix-community/nix-on-droid/release-24.05";
+      url = "git+https://git.0x04.cc/alaestor/fork-nix-on-droid.git?ref=better-cross-compile-1";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -210,7 +238,7 @@ A minimal example could look like the following:
 For more examples and nix flake templates, see [`templates`](./templates) directory or explore with:
 
 ```sh
-nix flake init --template github:nix-community/nix-on-droid#advanced
+nix flake init --template 'git+https://git.0x04.cc/alaestor/fork-nix-on-droid.git?ref=better-cross-compile-1#advanced'
 ```
 
 ### Usage with `nix-on-droid`
@@ -219,9 +247,9 @@ Use `nix-on-droid switch --flake path/to/flake#device` to build and activate you
 will expand to `.#nixOnDroidConfigurations.device`). If you run `nix-on-droid switch --flake path/to/flake`, the
 `default` configuration will be used.
 
-**Note:** Currently, Nix-on-Droid can not be built with an pure flake build because of hardcoded store paths for proot.
-Therefore, every evaluation of a flake configuration will be executed with `--impure` flag. (This behaviour will be
-dropped as soon as the default setup does not require it anymore.)
+The CLI still evaluates configurations with `--impure`. Direct flake builds
+do not need it for proot; bootstrap URL overrides supplied through environment
+variables do require it.
 
 ## Testing
 
@@ -254,9 +282,9 @@ OK, real brief.
 
 Developer's device:
 
-1. `proot` for the target platform is cross-compiled against `bionic`,
+1. `proot` for the target platform is cross-compiled statically against musl,
    (to fake file paths like `/nix/store`; think 'userspace `chroot`')
-2. Target `nix` is taken from the original release tarball
+2. Target `nix` and bash are taken from nixpkgs
 3. Target `nix` database is initialized
 4. Support scripts and config files are built with `nix` and the Nix-on-Droid
    module system

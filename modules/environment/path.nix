@@ -50,14 +50,21 @@ in
 
         nix_previous="$(command -v nix)"
 
-        nix profile list \
-          | grep 'nix-on-droid-path$' \
-          | cut -d ' ' -f 4 \
-          | xargs -t $DRY_RUN_CMD nix profile remove $VERBOSE_ARG
+        # Do not parse the human-readable listing. Both the old array
+        # manifest and the newer named manifest expose storePaths.
+        nod_paths="$(nix profile list --json | ${pkgs.jq}/bin/jq -r '
+          .elements[] | .storePaths[] | select(endswith("-nix-on-droid-path"))
+        ')"
 
-        $DRY_RUN_CMD $nix_previous profile install ${cfg.path}
+        while IFS= read -r nod_path; do
+          if [[ -n "$nod_path" ]]; then
+            $DRY_RUN_CMD "$nix_previous" profile remove $VERBOSE_ARG "$nod_path"
+          fi
+        done <<< "$nod_paths"
 
-        unset nix_previous
+        $DRY_RUN_CMD "$nix_previous" profile install ${cfg.path}
+
+        unset nix_previous nod_paths nod_path
       else
         $DRY_RUN_CMD nix-env --install ${cfg.path}
       fi

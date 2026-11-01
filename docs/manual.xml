@@ -31,10 +31,10 @@
 <programlisting language="nix">
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
 
     nix-on-droid = {
-      url = "github:nix-community/nix-on-droid/release-24.05";
+      url = "git+https://git.0x04.cc/alaestor/fork-nix-on-droid.git?ref=better-cross-compile-1";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };

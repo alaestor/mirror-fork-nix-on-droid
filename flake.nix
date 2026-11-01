@@ -2,14 +2,13 @@
   description = "Nix-enabled environment for your Android device";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
 
-    # for bootstrap zip ball creation and proot-termux builds, we use a fixed version of nixpkgs to ease maintanence.
-    # head of nixos-25.11 as of 2026-02-16
-    nixpkgs-for-bootstrap.url = "github:NixOS/nixpkgs/fa56d7d6de78f5a7f997b0ea2bc6efd5868ad9e8";
+    # Lock the bootstrap and proot toolchain independently of consumer nixpkgs.
+    nixpkgs-for-bootstrap.url = "github:NixOS/nixpkgs/nixos-26.05";
 
     home-manager = {
-      url = "github:nix-community/home-manager";
+      url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -64,7 +63,28 @@
 
       checks = forEachSystem (system: {
         nix-formatter-pack-check = nix-formatter-pack.lib.mkCheck formatterPackArgsFor.${system};
-      });
+        profile-update = import ./tests/profile-update.nix {
+          pkgs = nixpkgs.legacyPackages.${system};
+        };
+      } // nixpkgs.lib.genAttrs [ "activation-aarch64" "activation-x86_64" ] (name:
+        let
+          arch = nixpkgs.lib.removePrefix "activation-" name;
+        in
+        (self.lib.nixOnDroidConfiguration {
+          pkgs = import nixpkgs { system = "${arch}-linux"; };
+          bootstrapSystem = system;
+          modules = [{
+            system.stateVersion = "24.05";
+            home-manager = {
+              useGlobalPkgs = true;
+              config = { pkgs, ... }: {
+                home.stateVersion = "24.05";
+                home.packages = [ pkgs.hello ];
+              };
+            };
+          }];
+        }).activationPackage
+      ));
 
       formatter = forEachSystem (system: nix-formatter-pack.lib.mkFormatter formatterPackArgsFor.${system});
 
@@ -132,6 +152,7 @@
           docs = import ./docs {
             inherit home-manager;
             pkgs = nixpkgs-docs.legacyPackages.${system};
+            modulePkgs = nixpkgs.legacyPackages.${system};
             nmdSrc = nmd;
           };
         in

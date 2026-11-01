@@ -1,21 +1,24 @@
 # Copyright (c) 2019-2024, see AUTHORS. Licensed under MIT License, see LICENSE.
 
-{ pkgs, crossPkgs ? pkgs, home-manager, nmdSrc }:
+{ pkgs, modulePkgs ? pkgs, crossPkgs ? modulePkgs, home-manager, nmdSrc }:
 
 let
-  nmd = import nmdSrc { inherit pkgs; };
+  # Keep the DocBook renderer on its compatible package set, but evaluate
+  # current modules with the matching nixpkgs library and package defaults.
+  nmd = import nmdSrc { inherit pkgs; inherit (modulePkgs) lib; };
 
   # Make sure the used package is scrubbed to avoid actually instantiating
   # derivations.
   setupModule = {
-    _module.args.pkgs = pkgs.lib.mkForce (nmd.scrubDerivations "pkgs" pkgs);
+    _module.args.pkgs = modulePkgs.lib.mkForce (nmd.scrubDerivations "pkgs" modulePkgs);
 
     system.stateVersion = "19.09";
     home-manager.sharedModules = [ (_: { home.stateVersion = "24.05"; }) ];
   };
 
   modules = import ../modules/module-list.nix {
-    inherit pkgs crossPkgs;
+    inherit crossPkgs;
+    pkgs = modulePkgs;
     home-manager-path = home-manager.outPath;
     isFlake = true;
     targetSystem = "aarch64-linux/x86_64-linux";

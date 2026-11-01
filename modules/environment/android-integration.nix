@@ -22,10 +22,10 @@ in
       type = lib.types.bool;
       default = false;
       example = "true";
-      description = lib.mdDoc ''
-        Provide an `am` (activity manager) command.
+      description = ''
+        Provide an <command>am</command> (activity manager) command.
         Is not guaranteed to be a real deal, could be of limited compatibility
-        with real `am` (like `termux-am`).
+        with real <command>am</command> (like <command>termux-am</command>).
       '';
     };
 
@@ -33,10 +33,10 @@ in
       type = lib.types.bool;
       default = false;
       example = "true";
-      description = lib.mdDoc ''
-        Provide a `termux-open` command
+      description = ''
+        Provide a <command>termux-open</command> command
         that opens files or urls in external apps
-        (uses `com.termux.app.TermuxOpenReceiver`).
+        (uses <literal>com.termux.app.TermuxOpenReceiver</literal>).
       '';
     };
 
@@ -44,10 +44,10 @@ in
       type = lib.types.bool;
       default = false;
       example = "true";
-      description = lib.mdDoc ''
-        Provide a `termux-open-url` command
+      description = ''
+        Provide a <command>termux-open-url</command> command
         that opens files or urls in external apps
-        (uses `android.intent.action.VIEW`).
+        (uses <literal>android.intent.action.VIEW</literal>).
       '';
     };
 
@@ -55,8 +55,8 @@ in
       type = lib.types.bool;
       default = false;
       example = "true";
-      description = lib.mdDoc ''
-        Provide a `termux-setup-storage` command
+      description = ''
+        Provide a <command>termux-setup-storage</command> command
         that makes the app request storage permission,
         and then creates a $HOME/storage directory with symlinks to storage.
       '';
@@ -66,8 +66,8 @@ in
       type = lib.types.bool;
       default = false;
       example = "true";
-      description = lib.mdDoc ''
-        Provide a `termux-reload-settings` command
+      description = ''
+        Provide a <command>termux-reload-settings</command> command
         which applies changes to font, colorscheme or terminal
         without the need to close all the sessions.
       '';
@@ -77,8 +77,8 @@ in
       type = lib.types.bool;
       default = false;
       example = "true";
-      description = lib.mdDoc ''
-        Provide a `termux-wake-lock` command
+      description = ''
+        Provide a <command>termux-wake-lock</command> command
         that tones down Android power saving measures.
         This is the same action that's available from the notification.
       '';
@@ -88,9 +88,9 @@ in
       type = lib.types.bool;
       default = false;
       example = "true";
-      description = lib.mdDoc ''
-        Provide a `termux-wake-unlock` command
-        that undoes the effect of the `termux-wake-lock` one.
+      description = ''
+        Provide a <command>termux-wake-unlock</command> command
+        that undoes the effect of the <command>termux-wake-lock</command> one.
       '';
     };
 
@@ -98,8 +98,8 @@ in
       type = lib.types.bool;
       default = false;
       example = "true";
-      description = lib.mdDoc ''
-        Provide an `xdg-open` alias to `termux-open` command.
+      description = ''
+        Provide an <command>xdg-open</command> alias to <command>termux-open</command> command.
       '';
     };
 
@@ -107,7 +107,7 @@ in
       type = lib.types.bool;
       default = false;
       example = "true";
-      description = lib.mdDoc ''
+      description = ''
         Provide several more unsupported and untested commands.
         For testing and for brave souls only.
       '';
